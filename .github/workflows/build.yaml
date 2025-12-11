@@ -23,16 +23,16 @@ jobs:
           push: false # Do not push to a registry (only build for testing)
           tags: ${{ github.repository_owner }}/devops-starter-projects:latest, ${{ github.repository_owner }}/devops-starter-projects:${{ github.sha }}
           
-      # 4. (Conceptual) Add a testing step here
-      - name: Run Smoke Test (Check files exist)
+      # 4. A better smoke test: Run the container and check if it's serving content
+      - name: Run Smoke Test
         run: |
-          echo "Simulating check that built image is valid."
-          if [ -f "Dockerfile" ]; then
-            echo "Dockerfile found. Build process verified."
-          else
-            echo "Error: Dockerfile not found."
-            exit 1
-          fi
+          echo "Running container from the built image..."
+          docker run --name my-test-app -d -p 8080:80 ${{ github.repository_owner }}/devops-starter-projects:latest
+          echo "Waiting for container to start..."
+          sleep 5
+          echo "Testing web server response..."
+          # Use curl with -f to fail the step on HTTP error codes (like 404 or 500)
+          curl -f http://localhost:8080
 
       # 5. Conceptual output for successful completion
       - name: CI Success Message
