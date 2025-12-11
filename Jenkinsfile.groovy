@@ -37,10 +37,13 @@ pipeline {
             steps {
                 // Run the container in the background to verify it starts
                 echo "Running container from image ${IMAGE_TAG} for a quick test..."
-                sh "docker run --name nginx-test-${env.BUILD_NUMBER} -d -p 8080:80 ${IMAGE_TAG}"
-                // Add a small delay to ensure the container is up
-                sleep 5
-                echo "Test container is running."
+                // Use a script block for multi-line shell commands
+                script {
+                    sh "docker run --name nginx-test-${env.BUILD_NUMBER} -d -p 8080:80 ${IMAGE_TAG}"
+                    sleep 5 // Wait for Nginx to start
+                    echo "Testing web server response..."
+                    sh "curl -f http://localhost:8080" // -f fails the build on HTTP errors
+                }
             }
         }
     }
