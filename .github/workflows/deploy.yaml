@@ -1,0 +1,45 @@
+name: CD - Deploy to Server
+
+# 1. Trigger this workflow only after the 'build-and-push' job in the CI workflow has completed successfully
+on:
+  workflow_run:
+    workflows: ["CI - Build and Push Docker Image"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    # Only run this job if the CI workflow was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      # Use the same image name as the build workflow
+      IMAGE_NAME: devops-starter-projects
+
+    steps:
+      - name: Display Workflow Run Information
+        run: |
+          echo "🚀 Starting deployment from workflow run: ${{ github.event.workflow_run.id }}"
+          echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # Log in to GitHub Container Registry on the server
+            echo ${{ secrets.GH_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
+            # Pull the latest image from GHCR
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+
+            # Stop and remove the old container if it exists
+            docker stop my-nginx-webapp || true
+            docker rm my-nginx-webapp || true
+
+            # Run the new container, mapping port 80 on the server to port 80 in the container
+            docker run -d --name my-nginx-webapp -p 80:80 ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            
+            echo "✅ Deployment successful!"

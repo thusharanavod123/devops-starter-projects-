@@ -6,7 +6,5 @@ services:
     container_name: my-nginx-webapp
     ports:
       # Map port 8081 on your computer to port 80 in the container.
-      # We use 8081 to avoid conflicting with Jenkins on 8080.
-      - "8081:80"
-      # Changed to 8080 as requested.
+      # We use 8080 to avoid conflicting with other services.
       - "8080:80"
